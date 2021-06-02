@@ -1,7 +1,6 @@
 'use strict'
 
 function OneDatum(selected=false, values=[], search_list=false, name="", datum_name=''){
-  console.log(values)
   let interest_names = []
   if(values[0] == 'Urban Systems'){
     values.forEach(function(d){
@@ -35,15 +34,29 @@ d3.select("#faculty-table").style("height", height)
   svg_width = 400 
   console.log(svg_width)
   console.log(svg_height)
-	let data = await d3.csv('DAAP_fac.csv')
+	let data = await d3.csv('cleaned_DAAP_faculty.csv')
+
 
 
   const data_holder = {
-  "interests" : OneDatum(false, ['Urban Systems', 'Digital Culture', 'Sustainable Living', 'Creative Entrepreneurship', 'Health and Wellbeing'], "interests", "Interests", ""),
+  "interests" : OneDatum(false, ['Urban Systems', 'Digital Culture', 'Sustainable Living', 'Creative Entrepreneurship', 'Health and Wellbeing'], "interests", "Official Interests", ""),
   //"skills" : {},
   //"projects": {},
+  "interests_cleaned" : OneDatum(false, interests_cleaned_vals, true , "Written Interests", "interests_cleaned"),
+  "projects" : OneDatum(false, projects_cleaned_vals, true, "Project Descriptions", "projects_cleaned"),
+  "skills" : OneDatum(false, skills_cleaned_vals, true, "Skills", "skills_cleaned"),
+  "bios" : OneDatum(false, bios_cleaned_vals, true, "Bios", "bios_cleaned"),
   "departments" : OneDatum(false, ['ART', 'PLANNING', 'DESIGN', 'ARCHITECTURE'], false, "Departments", "School")
 }
+
+
+data.forEach(function(d){
+  
+  d.bios_cleaned = JSON.parse(d.bios_cleaned.replaceAll("'", '"'))
+  d.skills_cleaned = JSON.parse(d.skills_cleaned.replaceAll("'", '"'))
+  d.projects_cleaned = JSON.parse(d.projects_cleaned.replaceAll("'", '"'))
+  d.interests_cleaned = JSON.parse(d.interests_cleaned.replaceAll("'", '"'))
+})
 
 let value_buttons = d3.select("#buttons-div").selectAll(".button")
     .data(Object.keys(data_holder))
@@ -94,7 +107,9 @@ let value_buttons = d3.select("#buttons-div").selectAll(".button")
 
 
 
-  let trows = tbody.selectAll('tr').data(data).join("tr")
+  let trows = tbody.selectAll('tr').data(data).join("tr").attr("class", function(d){
+    return "table_row"
+  })
 
   let tcols = trows.selectAll("td").data(function(r){
     let rmap =  [r['Faculty Name'] + "\n" + r['Faculty Credentials and Contact'], r['Interests (5 to 10)'], r['Projects'], r['Skills']]
@@ -105,43 +120,6 @@ let value_buttons = d3.select("#buttons-div").selectAll(".button")
     })
 	d3.select("#loading").classed("hidden", true)
 	d3.selectAll(".load-unhide").classed("hidden", false)
-  /*
-	function getUnique(field, the_data){
-		let unique = [...new Set(the_data.map(function(d){
-			return d[field]
-		}))]
-		return unique;
-	}
-  
-	let interest_vals = ['Urban Systems', 'Digital Culture', 'Sustainable Living', 'Creative Enterprenurship', 'Health and Wellbeing']
-	let interest_names = []
-	interest_vals.forEach(function(i){
-		interest_names.push(
-			{'id' : getUnique(i, data).filter(function(v){
-			if (v == "-"){
-				return false
-			}
-			return true
-		})[0],
-      "type" : 'interest'
-		})
-	})
-	console.log(interest_names)
-	
-
-	data.forEach(function(n){
-		interest_vals.forEach(function(i){
-			if(n[i] != "-"){
-				links.push(
-					{
-						"source" : n.id,
-						"target" : n[i]
-					}
-				)
-			}
-		})
-	})
-*/
 
   const t = vis_svg.transition()
         .duration(750);
@@ -165,8 +143,7 @@ let value_buttons = d3.select("#buttons-div").selectAll(".button")
     updateLinks()
 
   function updateData(field, add){
-    console.log(field)
-    console.log(data_holder[field])
+    //adding nodes and links
     if (add){
       //special case for wierdly formatted interests values
       if(data_holder[field].search_list == 'interests'){
@@ -181,10 +158,6 @@ let value_buttons = d3.select("#buttons-div").selectAll(".button")
           if(n.type == 'faculty'){
             data_holder[field].values.forEach(function(i){
               if(n[i] != "-"){
-                console.log(n)
-                console.log(i)
-                console.log(n[i])
-
                 links.push(
                     {
                       "source" : n.id,
@@ -213,8 +186,28 @@ let value_buttons = d3.select("#buttons-div").selectAll(".button")
           }
         })
       }
+      else if(data_holder[field].search_list == true){
+        data_holder[field].values.forEach(function(d){
+          nodes.push({
+            "id" : d,
+            "type" : field
+          })
+        })
+        console.log(nodes)
+        nodes.forEach(function(n){
+          if(n[data_holder[field].datum_name] != undefined){
+            n[data_holder[field].datum_name].forEach(function(v){
+              links.push({
+                "source" : n.id,
+                "target" : v
+              })
+            })
+          }
+        })
+      }
 
     }
+    //removing nodes and links
     else{
       nodes = nodes.filter(function(d){
         if (d.type == field){
