@@ -1,5 +1,6 @@
 'use strict'
-
+let color_count = 0
+const colorscale = d3.schemeSet2
 function OneDatum(selected=false, values=[], search_list=false, name="", datum_name=''){
   let interest_names = []
   if(values[0] == 'Urban Systems'){
@@ -7,20 +8,20 @@ function OneDatum(selected=false, values=[], search_list=false, name="", datum_n
       interest_names.push(d.toUpperCase())
     })
   }
-
+  color_count ++;
   return {
     "selected" : selected,
     "values" : values,
     "search_list" : search_list,
     "name" : name,
     "datum_name" : datum_name,
-    "interest_names" : interest_names
+    "interest_names" : interest_names,
+    "color" : colorscale[color_count]
   }
 }
 
 
 async function wrapper(){
-	console.log("hi there")
 
 	let height = window.innerHeight;
 	let width = window.innerWidth;
@@ -40,8 +41,6 @@ d3.select("#faculty-table").style("height", height)
 
   const data_holder = {
   "interests" : OneDatum(false, ['Urban Systems', 'Digital Culture', 'Sustainable Living', 'Creative Entrepreneurship', 'Health and Wellbeing'], "interests", "Official Interests", ""),
-  //"skills" : {},
-  //"projects": {},
   "interests_cleaned" : OneDatum(false, interests_cleaned_vals, true , "Written Interests", "interests_cleaned"),
   "projects" : OneDatum(false, projects_cleaned_vals, true, "Project Descriptions", "projects_cleaned"),
   "skills" : OneDatum(false, skills_cleaned_vals, true, "Skills", "skills_cleaned"),
@@ -51,26 +50,33 @@ d3.select("#faculty-table").style("height", height)
 
 
 data.forEach(function(d){
-  
   d.bios_cleaned = JSON.parse(d.bios_cleaned.replaceAll("'", '"'))
   d.skills_cleaned = JSON.parse(d.skills_cleaned.replaceAll("'", '"'))
   d.projects_cleaned = JSON.parse(d.projects_cleaned.replaceAll("'", '"'))
   d.interests_cleaned = JSON.parse(d.interests_cleaned.replaceAll("'", '"'))
+  d['id'] = d['']
+  d['type'] = 'faculty'
 })
 
 let value_buttons = d3.select("#buttons-div").selectAll(".button")
     .data(Object.keys(data_holder))
     .join("button")
-    .attr("class", "btn btn-danger mr-2")
+    .attr("class", "btn mr-2")
     .attr("id", function(d){
       return d
     })
     .on("click", function(e){
       let field = d3.select(this).attr("id")
+      if (data_holder[field].selected){
+        d3.select(this).style("background-color", "grey")
+      }
+      else{
+        d3.select(this).style("background-color", data_holder[field].color)
+      }
+      
       updateData(field, !data_holder[field].selected)
       simulation.nodes(nodes);
       simulation.force("link").links(links);
-      //console.log(links)
       updateNodes()
       updateLinks()
       simulation.alpha(1).restart();
@@ -96,11 +102,7 @@ let value_buttons = d3.select("#buttons-div").selectAll(".button")
 	   .classed("svg-content-responsive", true)
 
 
- 
-	data.forEach(function(d){
-		d['id'] = d['Faculty Name'];
-    d['type'] = 'faculty'
-	})
+
 
 
   let tbody = d3.select('#fac-body-table')
@@ -160,7 +162,7 @@ let value_buttons = d3.select("#buttons-div").selectAll(".button")
               if(n[i] != "-"){
                 links.push(
                     {
-                      "source" : n.id,
+                      "source" : n[""],
                       "target" : n[i]
                     }
                   )
@@ -168,7 +170,6 @@ let value_buttons = d3.select("#buttons-div").selectAll(".button")
             })
           }
         })
-         console.log(links)
       }
       else if(data_holder[field].search_list == false){
         data_holder[field].values.forEach(function(d){
@@ -180,7 +181,7 @@ let value_buttons = d3.select("#buttons-div").selectAll(".button")
         nodes.forEach(function(n){
           if(n[data_holder[field].datum_name] != undefined){
             links.push({
-              "source" : n.id,
+              "source" : n[""],
               "target" : n.School
             })
           }
@@ -193,12 +194,11 @@ let value_buttons = d3.select("#buttons-div").selectAll(".button")
             "type" : field
           })
         })
-        console.log(nodes)
         nodes.forEach(function(n){
           if(n[data_holder[field].datum_name] != undefined){
             n[data_holder[field].datum_name].forEach(function(v){
               links.push({
-                "source" : n.id,
+                "source" : n[""],
                 "target" : v
               })
             })
@@ -228,7 +228,13 @@ let value_buttons = d3.select("#buttons-div").selectAll(".button")
   function updateLinks(){
     link = link.data(links)
         .join("line")
-        .attr("stroke", "#d3d3d3")
+        .attr("stroke", function(d){
+          return data_holder[d.target.type].color
+          
+        })
+        .attr("class", function(d){
+          return "c_" + d.source.id + " c_" + d.target.id;
+        })
         .attr("stroke-opacity", .5)
         .attr("stroke-width",function(d){
           return 2
@@ -236,14 +242,34 @@ let value_buttons = d3.select("#buttons-div").selectAll(".button")
   }//updateLinks
 
 
+  let clickedNode = undefined;
 
-  
   function updateNodes(){
       node = node
       .data(nodes)
       .join(function(enter){ 
         let enter_d = enter.append("g")
-        .attr("class", "node_g")
+        .attr("class", function(d){
+          return "node_g"; 
+        })
+        .attr("id", function(d){
+          return d.id
+        })
+        .on("mouseover", function(e){
+          let thenode = d3.select(this)
+          thenode.select("circle").attr("stroke", 'red')
+          d3.selectAll(".c_" + thenode.attr("id")).classed("highlightlink", true)
+        })
+        .on("mouseout", function(e){
+          let thenode = d3.select(this)
+          thenode.select("circle").attr("stroke", 'black')
+          d3.selectAll(".c_" + thenode.attr("id")).classed("highlightlink", false)
+        })
+        .on("click", function(e){
+          let thenode = d3.select(this)
+          //thenode.select("circle").attr("stroke", 'black')
+          //d3.selectAll(".c_" + thenode.attr("id")).classed("highlightlink", false)
+        })
         .call(drag(simulation))
         enter_d.append("circle")
         .attr("r", function(d){
@@ -255,13 +281,14 @@ let value_buttons = d3.select("#buttons-div").selectAll(".button")
           }
         })
         .attr("fill", function(d){
-          if (d.type == 'new'){
-            return 'green'
+          if (d.type == 'faculty'){
+            return 'grey'
           }
-          if (d.type != 'faculty'){
-            return 'red'
-          }
+          return data_holder[d.type].color
         })
+
+        .attr("stroke", 'black')
+        .attr("stroke-width", .5)
 
 
 
@@ -274,7 +301,9 @@ let value_buttons = d3.select("#buttons-div").selectAll(".button")
        })
 
       enter_d.append("title")
-        .text(d => d.id)
+        .text(function(d){
+          return d['Faculty Name']
+        })
       return enter_d;
       },//enter
       function(update){
