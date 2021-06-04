@@ -110,14 +110,26 @@ let value_buttons = d3.select("#buttons-div").selectAll(".button")
 
 
   let trows = tbody.selectAll('tr').data(data).join("tr").attr("class", function(d){
+    let class_string = ""
+    Object.keys(data_holder).forEach(function(k){
+      if (typeof(d[data_holder[k].datum_name]) == 'string'){
+        class_string = class_string + " " + d[data_holder[k].datum_name]
+      }
+      else {
+        class_string = class_string + " " + d[data_holder[k].datum_name].join(" ")
+      }
+    })
+    //return "table_row" + " " + class_string
     return "table_row"
   })
 
   let tcols = trows.selectAll("td").data(function(r){
-    let rmap =  [r['Faculty Name'] + "\n" + r['Faculty Credentials and Contact'], r['Interests (5 to 10)'], r['Projects'], r['Skills']]
+    let rmap =  [r['Faculty Name'] , r['Interests (5 to 10)'], r['Projects'], r['Skills']]
     return rmap
   })
-    .join("td").attr("class", "td").text(function(d){
+  .join("td")
+  .attr("class", "td col").style("max-width", "150px")
+  .text(function(d){
       return d
     })
 	d3.select("#loading").classed("hidden", true)
