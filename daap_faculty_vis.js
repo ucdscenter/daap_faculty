@@ -9,10 +9,16 @@ function OneDatum(selected=false, values=[], search_list=false, name="", datum_n
     })
   }
   color_count ++;
+
+  let values_dict = {}
+  values.forEach(function(d){
+    values_dict[d] = 1
+  })
   return {
     "selected" : selected,
     "values" : values,
     "search_list" : search_list,
+    "values_dict" : values_dict,
     "name" : name,
     "datum_name" : datum_name,
     "interest_names" : interest_names,
@@ -37,7 +43,9 @@ d3.select("#faculty-table").style("height", height)
   console.log(svg_height)
 	let data = await d3.csv('cleaned_DAAP_faculty.csv')
 
+  let weight_data = await d3.json('extra_dicts.json')
 
+  console.log(weight_data)
 
   const data_holder = {
   "interests" : OneDatum(false, ['Urban Systems', 'Digital Culture', 'Sustainable Living', 'Creative Entrepreneurship', 'Health and Wellbeing'], "interests", "Official Interests", ""),
@@ -148,14 +156,18 @@ let value_buttons = d3.select("#buttons-div").selectAll(".button")
 	const simulation = d3.forceSimulation(nodes)
       .force("link", d3.forceLink(links).id(function(d){
       	return d.id
+      }).distance(function(d){
+        return .1
       }))
       .force("charge", d3.forceManyBody())
+      .force("collision", d3.forceCollide(5))
       .force("x", d3.forceX(svg_width / 2))
       .force("y", d3.forceY(svg_height / 2));
     
     updateNodes()
     updateLinks()
 
+  let sizeScale = d3.scaleLinear().domain([1, 49]).range([3, 20])
   function updateData(field, add){
     //adding nodes and links
     if (add){
@@ -164,7 +176,8 @@ let value_buttons = d3.select("#buttons-div").selectAll(".button")
          data_holder[field].interest_names.forEach(function(d){
           nodes.push({
             "id" : d,
-            "type" : field
+            "type" : field,
+            "weight" : 5
           })
         });
       
@@ -187,7 +200,8 @@ let value_buttons = d3.select("#buttons-div").selectAll(".button")
         data_holder[field].values.forEach(function(d){
           nodes.push({
             "id" : d,
-            "type" : field
+            "type" : field,
+            "weight" : 5
           })
         })
         nodes.forEach(function(n){
@@ -200,19 +214,25 @@ let value_buttons = d3.select("#buttons-div").selectAll(".button")
         })
       }
       else if(data_holder[field].search_list == true){
+        console.log("HERE")
         data_holder[field].values.forEach(function(d){
+          console.log(weight_data[field])
           nodes.push({
             "id" : d,
-            "type" : field
+            "type" : field,
+            "weight" : sizeScale(weight_data[field][d])
           })
         })
         nodes.forEach(function(n){
           if(n[data_holder[field].datum_name] != undefined){
             n[data_holder[field].datum_name].forEach(function(v){
-              links.push({
-                "source" : n[""],
-                "target" : v
-              })
+              if (data_holder[field].values_dict[v] != undefined){
+                links.push({
+                  "source" : n[""],
+                  "target" : v
+                })
+              } 
+              
             })
           }
         })
@@ -247,7 +267,7 @@ let value_buttons = d3.select("#buttons-div").selectAll(".button")
         .attr("class", function(d){
           return "c_" + d.source.id + " c_" + d.target.id;
         })
-        .attr("stroke-opacity", .5)
+        .attr("stroke-opacity", .3)
         .attr("stroke-width",function(d){
           return 2
         })
@@ -289,7 +309,7 @@ let value_buttons = d3.select("#buttons-div").selectAll(".button")
             return 3
           }
           else {
-            return 5
+            return d.weight
           }
         })
         .attr("fill", function(d){
