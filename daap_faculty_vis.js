@@ -76,7 +76,7 @@ let value_buttons = d3.select("#buttons-div").selectAll(".button")
     .on("click", function(e){
       let field = d3.select(this).attr("id")
       if (data_holder[field].selected){
-        d3.select(this).style("background-color", "grey")
+        d3.select(this).style("background-color", "#d3d3d3")
       }
       else{
         d3.select(this).style("background-color", data_holder[field].color)
@@ -121,22 +121,40 @@ let value_buttons = d3.select("#buttons-div").selectAll(".button")
     let class_string = ""
     Object.keys(data_holder).forEach(function(k){
       if (typeof(d[data_holder[k].datum_name]) == 'string'){
-        class_string = class_string + " " + d[data_holder[k].datum_name]
+        if (isNaN(parseInt(d[data_holder[k].datum_name]))){
+          class_string = class_string + " " + d[data_holder[k].datum_name].toLowerCase()
+        }
+        else{
+          class_string = class_string + " i_" + d[data_holder[k].datum_name]
+        }
+        
       }
       else {
-        class_string = class_string + " " + d[data_holder[k].datum_name].join(" ")
+        let filtered = d[data_holder[k].datum_name].filter(function(n){
+          if (isNaN(parseInt(n))){
+            if(n == 'media'){
+              return false
+            }
+            return true
+          }
+          return false
+        })
+
+        class_string = class_string + " " + filtered.join(" ")
       }
     })
-    //return "table_row" + " " + class_string
-    return "table_row"
+
+    return "table_row" + " " + class_string
+    //return "table_row"
   })
+  .style("background-color", "")
 
   let tcols = trows.selectAll("td").data(function(r){
     let rmap =  [r['Faculty Name'] , r['Interests (5 to 10)'], r['Projects'], r['Skills']]
     return rmap
   })
   .join("td")
-  .attr("class", "td col").style("max-width", "150px")
+  //.attr("class", "td").style("width", "25%")
   .text(function(d){
       return d
     })
@@ -149,6 +167,26 @@ let value_buttons = d3.select("#buttons-div").selectAll(".button")
   
 	let nodes = data//.concat(interest_names)
   let links = [];
+
+  var thing = vis_svg.append("rect")
+                    .attr("x", 0)
+                    .attr("y", 0)
+                    .style("fill","white")
+                    .attr('height', svg_height)
+                    .attr("width", svg_width)
+                    .on("click", function(evt){
+                      if (clickedNode != undefined){
+                         clickedNode.select("circle").attr("stroke-width", .5)
+                          d3.selectAll(".table_row").classed("hidden", false).style("background-color", "white")
+                          //d3.selectAll("." + clickedNode.attr("id")).style("background-color", "white").classed("hidden", false)
+                          d3.selectAll(".c_" + clickedNode.attr("id")).style("stroke-opacity", function(d){
+                              return .3
+                          })
+                          clickedNode = undefined
+                      }
+                     
+                    })
+
   var link = vis_svg.append("g").attr("class", "link_svg").selectAll("line")
   
   var node = vis_svg.append("g").selectAll(".g");
@@ -214,9 +252,7 @@ let value_buttons = d3.select("#buttons-div").selectAll(".button")
         })
       }
       else if(data_holder[field].search_list == true){
-        console.log("HERE")
         data_holder[field].values.forEach(function(d){
-          console.log(weight_data[field])
           nodes.push({
             "id" : d,
             "type" : field,
@@ -267,7 +303,7 @@ let value_buttons = d3.select("#buttons-div").selectAll(".button")
         .attr("class", function(d){
           return "c_" + d.source.id + " c_" + d.target.id;
         })
-        .attr("stroke-opacity", .3)
+        .attr("stroke-opacity", .2)
         .attr("stroke-width",function(d){
           return 2
         })
@@ -291,6 +327,7 @@ let value_buttons = d3.select("#buttons-div").selectAll(".button")
           let thenode = d3.select(this)
           thenode.select("circle").attr("stroke", 'red')
           d3.selectAll(".c_" + thenode.attr("id")).classed("highlightlink", true)
+  
         })
         .on("mouseout", function(e){
           let thenode = d3.select(this)
@@ -299,8 +336,27 @@ let value_buttons = d3.select("#buttons-div").selectAll(".button")
         })
         .on("click", function(e){
           let thenode = d3.select(this)
-          //thenode.select("circle").attr("stroke", 'black')
-          //d3.selectAll(".c_" + thenode.attr("id")).classed("highlightlink", false)
+          if (clickedNode != undefined){
+            clickedNode.select("circle").attr("stroke-width", .5)
+            //d3.selectAll("." + thenode.attr("id")).style("background-color", thenode.select("circle").attr("fill")).classed("hidden", false)
+            d3.selectAll(".c_" + clickedNode.attr("id")).style("stroke-opacity", function(d){
+              return .2
+            })
+          }
+          
+          thenode.select("circle").attr("stroke-width", 3)
+          d3.selectAll(".table_row").classed("hidden", true)
+          if(isNaN(parseInt(thenode.attr("id")))){
+            console.log(thenode.attr("id"))
+            d3.selectAll("." + thenode.attr("id")).style("background-color", thenode.select("circle").attr("fill")).classed("hidden", false)
+            d3.selectAll(".c_" + thenode.attr("id")).style("stroke-opacity", function(d){
+              return 1
+            })
+          }
+          else {
+            d3.select(".i_" + thenode.attr("id")).classed("hidden", false)
+          }
+          clickedNode = thenode
         })
         .call(drag(simulation))
         enter_d.append("circle")

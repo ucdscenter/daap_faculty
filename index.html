@@ -23,7 +23,7 @@
 			  top: 10px;
 			  left: 0;
 			}
-
+			
 			svg .rect {
 			  stroke: steelblue;
 			  stroke-width: 100px;
@@ -44,13 +44,16 @@
 				font-size: .8rem
 			}
 			.unselected {
-				background-color: grey
+				background-color: #d3d3d3
 			}
 			.node_g {
 				cursor : pointer;
 			}
 			.highlightlink {
 				stroke : red;
+			}
+			.clicklink {
+				stroke : purple
 			}
  
 		</style>
@@ -82,10 +85,12 @@
 				<div class="col-md-4 col-lg-4 col-sm-12 col-12 hidden load-unhide" id="faculty-table">
 					<table class="table" id="fac-table">
 						<thead>
-							<th>Name & Contact</th>
-							<th>Interests</th>
-							<th>Projects</th>
-							<th>Skills</th>
+							<tr>
+								<th style="width:10%">Name</th>
+								<th style="width:30%">Interests</th>
+								<th style="width:30%">Projects</th>
+								<th style="width:30%">Skills</th>
+							</tr>
 						</thead>
 						<tbody id="fac-body-table">
 							
