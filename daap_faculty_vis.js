@@ -66,22 +66,29 @@ data.forEach(function(d){
   d['type'] = 'faculty'
 })
 
+let buttons_order = []
+
 let value_buttons = d3.select("#buttons-div").selectAll(".button")
     .data(Object.keys(data_holder))
     .join("button")
-    .attr("class", "btn mr-2")
+    .attr("class", "btn mr-2 mb-2")
     .attr("id", function(d){
       return d
     })
     .on("click", function(e){
       let field = d3.select(this).attr("id")
       if (data_holder[field].selected){
+        if (buttons_order[0] != field){
+          alert("please deselect buttons in the reverse order you selected them in")
+          return
+        }
+        buttons_order.shift()
         d3.select(this).style("background-color", "#d3d3d3")
       }
       else{
+        buttons_order.unshift(field)
         d3.select(this).style("background-color", data_holder[field].color)
       }
-      
       updateData(field, !data_holder[field].selected)
       simulation.nodes(nodes);
       simulation.force("link").links(links);
@@ -116,10 +123,18 @@ let value_buttons = d3.select("#buttons-div").selectAll(".button")
   let tbody = d3.select('#fac-body-table')
 
 
-
+  console.log(data)
   let trows = tbody.selectAll('tr').data(data).join("tr").attr("class", function(d){
     let class_string = ""
     Object.keys(data_holder).forEach(function(k){
+      if(k == 'interests'){
+       data_holder[k].values.forEach(function(inter){
+        var class_name = inter.replaceAll(" ", "_").toLowerCase();
+        if (d[inter].length != 1){
+          class_string = class_string + " " +class_name
+        }
+       })
+      }
       if (typeof(d[data_holder[k].datum_name]) == 'string'){
         if (isNaN(parseInt(d[data_holder[k].datum_name]))){
           class_string = class_string + " " + d[data_holder[k].datum_name].toLowerCase()
@@ -336,6 +351,7 @@ let value_buttons = d3.select("#buttons-div").selectAll(".button")
         })
         .on("click", function(e){
           let thenode = d3.select(this)
+          console.log(thenode)
           if (clickedNode != undefined){
             clickedNode.select("circle").attr("stroke-width", .5)
             //d3.selectAll("." + thenode.attr("id")).style("background-color", thenode.select("circle").attr("fill")).classed("hidden", false)
@@ -347,8 +363,8 @@ let value_buttons = d3.select("#buttons-div").selectAll(".button")
           thenode.select("circle").attr("stroke-width", 3)
           d3.selectAll(".table_row").classed("hidden", true)
           if(isNaN(parseInt(thenode.attr("id")))){
-            console.log(thenode.attr("id"))
-            d3.selectAll("." + thenode.attr("id")).style("background-color", thenode.select("circle").attr("fill")).classed("hidden", false)
+            let trow_class = thenode.attr("id").replaceAll(" ", "_").toLowerCase()
+            d3.selectAll("." + trow_class).style("background-color", thenode.select("circle").attr("fill")).classed("hidden", false)
             d3.selectAll(".c_" + thenode.attr("id")).style("stroke-opacity", function(d){
               return 1
             })
@@ -439,6 +455,15 @@ let value_buttons = d3.select("#buttons-div").selectAll(".button")
         .on("end", dragended);
   }//simulation
 
+
+  function resize_table() {
+   height = window.innerHeight;
+   width = window.innerWidth;
+   d3.select("#faculty-table").style("height", height)
+
+}
+
+window.onresize = resize_table;
 }//wrapper
 
 wrapper()
